@@ -25,11 +25,28 @@ def test_status_for_flags_missing_binaries():
 
 
 def test_status_for_flags_missing_key():
-    with patch.object(setup_mod, "_which", side_effect=lambda x: f"/bin/{x}"):
+    def fake_which(x):
+        return None if x == "whisper-cli" else f"/bin/{x}"
+    with patch.object(setup_mod, "_which", side_effect=fake_which):
         with patch.object(setup_mod, "_read_env", return_value={}):
-            s = setup_mod.status_for()
+            with patch.object(setup_mod, "_resolve_local_model", return_value=None):
+                s = setup_mod.status_for()
     assert s["status"] == "needs_key"
     assert s["has_api_key"] is False
+    assert s["has_local_whisper"] is False
+
+
+def test_status_for_ready_with_local_whisper_no_key():
+    with patch.object(setup_mod, "_which", side_effect=lambda x: f"/bin/{x}"):
+        with patch.object(setup_mod, "_read_env", return_value={}):
+            with patch.object(
+                setup_mod, "_resolve_local_model", return_value="/fake/model.bin"
+            ):
+                s = setup_mod.status_for()
+    assert s["status"] == "ready"
+    assert s["has_api_key"] is False
+    assert s["has_local_whisper"] is True
+    assert s["whisper_backend"] == "local"
 
 
 def test_status_for_combines_when_both_missing():

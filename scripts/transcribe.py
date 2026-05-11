@@ -162,7 +162,14 @@ def transcribe_via_whisper(
     backend: str,
     groq_key: Optional[str],
     openai_key: Optional[str],
+    local_model_path: Optional[Path] = None,
 ) -> list[dict]:
+    if backend == "local":
+        if not local_model_path:
+            raise whisper.WhisperError(
+                "Local backend selected but WHISPER_CPP_MODEL is unset"
+            )
+        return whisper.transcribe_local(audio, model_path=local_model_path)
     if backend == "groq":
         if not groq_key:
             raise whisper.WhisperError("Groq backend selected but GROQ_API_KEY is unset")

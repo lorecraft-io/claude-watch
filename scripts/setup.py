@@ -21,6 +21,7 @@ from typing import Optional
 CONFIG_DIR = Path.home() / ".config" / "claude-watch"
 ENV_PATH = CONFIG_DIR / ".env"
 LIBRARY_ROOT = Path.home() / "claude-watch" / "library"
+DEFAULT_LOCAL_MODEL = CONFIG_DIR / "models" / "ggml-base.en.bin"
 REQUIRED_BINS = ("ffmpeg", "ffprobe", "yt-dlp")
 
 
@@ -38,21 +39,31 @@ def _read_env() -> dict[str, str]:
                 continue
             k, _, v = line.partition("=")
             env[k.strip()] = v.strip().strip('"').strip("'")
-    for k in ("GROQ_API_KEY", "OPENAI_API_KEY", "SETUP_COMPLETE"):
+    for k in ("GROQ_API_KEY", "OPENAI_API_KEY", "WHISPER_CPP_MODEL", "SETUP_COMPLETE"):
         if k in os.environ and not env.get(k):
             env[k] = os.environ[k]
     return env
+
+
+def _resolve_local_model(env: dict[str, str]) -> Optional[Path]:
+    """Resolve the whisper.cpp model path: env override > default. Returns None if no file."""
+    raw = env.get("WHISPER_CPP_MODEL")
+    candidate = Path(raw).expanduser() if raw else DEFAULT_LOCAL_MODEL
+    return candidate if candidate.exists() else None
 
 
 def status_for() -> dict:
     missing = [b for b in REQUIRED_BINS if not _which(b)]
     env = _read_env()
     has_key = bool(env.get("GROQ_API_KEY") or env.get("OPENAI_API_KEY"))
-    if missing and not has_key:
+    local_model = _resolve_local_model(env)
+    has_local = bool(_which("whisper-cli") and local_model)
+    has_backend = has_key or has_local
+    if missing and not has_backend:
         status = "needs_install_and_key"
     elif missing:
         status = "needs_install"
-    elif not has_key:
+    elif not has_backend:
         status = "needs_key"
     else:
         status = "ready"
@@ -60,8 +71,11 @@ def status_for() -> dict:
         "status": status,
         "missing_binaries": missing,
         "has_api_key": has_key,
+        "has_local_whisper": has_local,
+        "local_model_path": str(local_model) if local_model else None,
         "whisper_backend": (
-            "groq" if env.get("GROQ_API_KEY")
+            "local" if has_local
+            else "groq" if env.get("GROQ_API_KEY")
             else "openai" if env.get("OPENAI_API_KEY")
             else None
         ),
@@ -82,8 +96,10 @@ def _scaffold_env() -> None:
         return
     ENV_PATH.write_text(
         "# claude-watch credentials\n"
-        "# Get a Groq key (preferred — cheaper, faster): https://console.groq.com/keys\n"
-        "# Or OpenAI: https://platform.openai.com/api-keys\n"
+        "# Preferred: local whisper.cpp (no key, no network). Install: brew install whisper-cpp\n"
+        "# Then set WHISPER_CPP_MODEL to a ggml model path (default: ~/.config/claude-watch/models/ggml-base.en.bin)\n"
+        "# WHISPER_CPP_MODEL=\n"
+        "# Cloud fallbacks (only if you don't want local):\n"
         "# GROQ_API_KEY=\n"
         "# OPENAI_API_KEY=\n"
         "SETUP_COMPLETE=false\n"

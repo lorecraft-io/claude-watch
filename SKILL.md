@@ -1,7 +1,7 @@
 ---
 name: claude-watch
-description: Watch a tutorial or lecture video (URL or local path) and produce structured study notes. Downloads with yt-dlp, detects scene changes with ffmpeg, pulls a timestamped transcript (captions or Whisper API fallback), and writes a section-by-section markdown notes file with embedded screenshots to ~/claude-watch/library/<slug>/.
-argument-hint: "<video-url-or-path> [topic-or-question]"
+description: Watch a tutorial / lecture / talk video, OR sweep a whole YouTube channel or playlist, and produce structured study notes. Downloads with yt-dlp, detects scene changes with ffmpeg, pulls a timestamped transcript (captions, local whisper.cpp, or cloud whisper fallback), and writes section-by-section markdown notes with embedded screenshots to ~/claude-watch/library/<slug>/. Channel/playlist URLs produce one notes.md per video plus a top-level index.md rolling up the channel.
+argument-hint: "<video-or-channel-url-or-path> [topic-or-question]"
 allowed-tools: Bash, Read, Write, AskUserQuestion
 homepage: https://github.com/devinilabs/claude-watch
 repository: https://github.com/devinilabs/claude-watch
@@ -29,13 +29,25 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/setup.py"
 
 On macOS this auto-`brew install`s ffmpeg + yt-dlp. On Linux/Windows it prints the right commands. It scaffolds `~/.config/claude-watch/.env` (mode 0600) with commented placeholders.
 
-If a Whisper key is still missing afterwards, use `AskUserQuestion` to ask whether the user has a Groq key (preferred — cheaper, faster) or an OpenAI key, and write it to `~/.config/claude-watch/.env`. If they don't want to, run with `--no-whisper`; videos without native captions will come back frames-only.
+**Backends, in priority order:**
+1. **Local whisper.cpp** — preferred (free, offline, Metal-accelerated on Apple Silicon). Requires `whisper-cli` on PATH (`brew install whisper-cpp`) AND a ggml model file at `~/.config/claude-watch/models/ggml-base.en.bin` (or wherever `WHISPER_CPP_MODEL` env var points).
+2. **Groq** — needs `GROQ_API_KEY` in `~/.config/claude-watch/.env`.
+3. **OpenAI** — needs `OPENAI_API_KEY` in `~/.config/claude-watch/.env`.
+
+If no backend is configured, use `AskUserQuestion` to ask whether the user wants to install whisper-cpp locally (`brew install whisper-cpp` + download `ggml-base.en.bin`), set a Groq key, set an OpenAI key, or run with `--no-whisper` (frames-only when no native captions).
 
 ## When to use
 
 - User pastes a tutorial / lecture / talk URL and asks to study it
 - User points at a local screen recording or video and wants notes
+- User pastes a **YouTube channel URL** (`youtube.com/@handle`, `youtube.com/c/...`, `youtube.com/channel/...`) or **playlist URL** and asks to study the channel / find recurring patterns / scrape what a creator is doing
 - User types `/claude-watch <url-or-path> [topic]`
+
+## Channel / playlist mode
+
+If `source` is a multi-video URL (yt-dlp probe returns `_type: playlist` with >1 entries), `watch.py` runs the per-video pipeline on each and writes a top-level `index.md` to `~/claude-watch/library/channel-<slug>-<hash>/`. Defaults to the first 10 videos; override with `--limit N`. Force single-video mode (skip channel detection) with `--single`.
+
+After channel runs, write a `synthesis.md` (in the channel dir, alongside `index.md`) that fills the `## Cross-channel synthesis` section in `index.md`: recurring hooks, thumbnail formulas, script structures, what's trending, and the 3 most cloneable moves. You don't need to write a notes.md per video synthesis (each video already got its own).
 
 ## How to invoke
 
@@ -53,7 +65,7 @@ Optional flags:
 - `--resolution W` — bump frame width to 1024 px when on-screen text is tiny
 - `--scene-threshold X` — sensitivity (default 0.30; raise for fewer cuts, lower for more)
 - `--max-gap S` — coverage floor in seconds (default 45)
-- `--whisper groq|openai` — force backend
+- `--whisper local|groq|openai` — force backend
 - `--no-whisper` — disable Whisper entirely
 - `--out-dir DIR` — override library root
 

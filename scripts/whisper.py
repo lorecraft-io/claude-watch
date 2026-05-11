@@ -1,8 +1,11 @@
-"""Stdlib HTTP clients for Groq and OpenAI Whisper APIs."""
+"""Stdlib HTTP clients for Groq and OpenAI Whisper APIs + local whisper.cpp shell-out."""
 from __future__ import annotations
 
 import json
 import mimetypes
+import shutil
+import subprocess
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -15,6 +18,8 @@ GROQ_MODEL = "whisper-large-v3"
 OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions"
 OPENAI_MODEL = "whisper-1"
 
+LOCAL_BIN = "whisper-cli"
+
 
 class WhisperError(Exception):
     pass
@@ -25,15 +30,21 @@ def pick_backend(
     groq_key: Optional[str],
     openai_key: Optional[str],
     forced: Optional[str],
+    local_available: bool = False,
 ) -> Optional[str]:
-    """Return 'groq', 'openai', or None.
+    """Return 'local', 'groq', 'openai', or None.
 
-    Forced backend wins iff its key is present. Otherwise prefer Groq, then OpenAI.
+    Forced backend wins iff its prerequisite is present. Otherwise prefer local
+    (free + offline), then Groq, then OpenAI.
     """
+    if forced == "local":
+        return "local" if local_available else None
     if forced == "groq":
         return "groq" if groq_key else None
     if forced == "openai":
         return "openai" if openai_key else None
+    if local_available:
+        return "local"
     if groq_key:
         return "groq"
     if openai_key:
@@ -119,3 +130,53 @@ def transcribe_groq(audio: Path, *, api_key: str) -> list[dict]:
 
 def transcribe_openai(audio: Path, *, api_key: str) -> list[dict]:
     return _post(OPENAI_URL, audio, model=OPENAI_MODEL, api_key=api_key)
+
+
+def local_available(model_path: Optional[Path]) -> bool:
+    """True if whisper-cli is on PATH and the model file exists."""
+    if not shutil.which(LOCAL_BIN):
+        return False
+    return bool(model_path and Path(model_path).expanduser().exists())
+
+
+def transcribe_local(audio: Path, *, model_path: Path) -> list[dict]:
+    """Shell out to whisper.cpp's whisper-cli. Zero network, zero keys.
+
+    Parses whisper.cpp's JSON output (transcription[].offsets.{from,to} in ms)
+    into the same segment shape as the HTTP backends.
+    """
+    model = Path(model_path).expanduser()
+    if not model.exists():
+        raise WhisperError(f"whisper.cpp model not found: {model}")
+    with tempfile.TemporaryDirectory() as td:
+        out_base = Path(td) / "out"
+        cmd = [
+            LOCAL_BIN,
+            "-m", str(model),
+            "-oj", "-of", str(out_base),
+            "-nt",          # no timestamps in stdout (we read JSON anyway)
+            "-l", "en",
+            str(audio),
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if proc.returncode != 0:
+            raise WhisperError(
+                f"whisper-cli exit {proc.returncode}: {proc.stderr[-500:]}"
+            )
+        json_path = out_base.with_suffix(".json")
+        if not json_path.exists():
+            raise WhisperError(f"whisper-cli produced no JSON at {json_path}")
+        try:
+            payload = json.loads(json_path.read_text())
+        except json.JSONDecodeError as e:
+            raise WhisperError(f"whisper-cli JSON parse failed: {e}") from e
+        segs = payload.get("transcription") or []
+        return [
+            {
+                "t_start": float(s["offsets"]["from"]) / 1000.0,
+                "t_end": float(s["offsets"]["to"]) / 1000.0,
+                "text": s["text"].strip(),
+            }
+            for s in segs
+            if s.get("text", "").strip()
+        ]

@@ -49,6 +49,64 @@ def test_status_for_ready_with_local_whisper_no_key():
     assert s["whisper_backend"] == "local"
 
 
+def test_resolve_local_model_env_var_wins(tmp_path):
+    """An explicit WHISPER_CPP_MODEL beats every default path."""
+    target = tmp_path / "custom.bin"
+    target.write_bytes(b"x")
+    got = setup_mod._resolve_local_model({"WHISPER_CPP_MODEL": str(target)})
+    assert got == target
+
+
+def test_resolve_local_model_env_var_missing_returns_none(tmp_path):
+    """An explicit WHISPER_CPP_MODEL pointing at a missing file returns None.
+
+    We do NOT silently fall back to the defaults — if the user named a path,
+    honor exactly that path. Falling back would mask a user typo.
+    """
+    target = tmp_path / "does-not-exist.bin"
+    got = setup_mod._resolve_local_model({"WHISPER_CPP_MODEL": str(target)})
+    assert got is None
+
+
+def test_resolve_local_model_falls_through_extra_paths_when_default_missing(monkeypatch, tmp_path):
+    """When DEFAULT_LOCAL_MODEL is absent and an EXTRA path exists, use the EXTRA path.
+
+    This is the sibling-installer integration case: creativity-maxxing's media
+    module drops the model at ~/.whisper/ggml-base.en.bin, not at
+    ~/.config/claude-watch/models/ggml-base.en.bin.
+    """
+    missing_default = tmp_path / "default-missing" / "model.bin"
+    present_extra = tmp_path / "extra-present" / "model.bin"
+    present_extra.parent.mkdir(parents=True)
+    present_extra.write_bytes(b"x")
+    monkeypatch.setattr(setup_mod, "DEFAULT_LOCAL_MODEL", missing_default)
+    monkeypatch.setattr(setup_mod, "EXTRA_LOCAL_MODEL_PATHS", (present_extra,))
+    got = setup_mod._resolve_local_model({})
+    assert got == present_extra
+
+
+def test_resolve_local_model_default_wins_over_extra(monkeypatch, tmp_path):
+    """If BOTH default and extra exist, the claude-watch default wins."""
+    present_default = tmp_path / "default" / "model.bin"
+    present_extra = tmp_path / "extra" / "model.bin"
+    present_default.parent.mkdir(parents=True)
+    present_extra.parent.mkdir(parents=True)
+    present_default.write_bytes(b"x")
+    present_extra.write_bytes(b"x")
+    monkeypatch.setattr(setup_mod, "DEFAULT_LOCAL_MODEL", present_default)
+    monkeypatch.setattr(setup_mod, "EXTRA_LOCAL_MODEL_PATHS", (present_extra,))
+    got = setup_mod._resolve_local_model({})
+    assert got == present_default
+
+
+def test_resolve_local_model_none_when_no_paths_exist(monkeypatch, tmp_path):
+    monkeypatch.setattr(setup_mod, "DEFAULT_LOCAL_MODEL", tmp_path / "no-default.bin")
+    monkeypatch.setattr(
+        setup_mod, "EXTRA_LOCAL_MODEL_PATHS", (tmp_path / "no-extra.bin",)
+    )
+    assert setup_mod._resolve_local_model({}) is None
+
+
 def test_status_for_combines_when_both_missing():
     with patch.object(setup_mod, "_which", return_value=None):
         with patch.object(setup_mod, "_read_env", return_value={}):

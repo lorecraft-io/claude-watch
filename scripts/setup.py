@@ -22,6 +22,12 @@ CONFIG_DIR = Path.home() / ".config" / "claude-watch"
 ENV_PATH = CONFIG_DIR / ".env"
 LIBRARY_ROOT = Path.home() / "claude-watch" / "library"
 DEFAULT_LOCAL_MODEL = CONFIG_DIR / "models" / "ggml-base.en.bin"
+# Additional known-good model locations. creativity-maxxing's media module
+# installs the model at ~/.whisper/ggml-base.en.bin; honor that path too so
+# the two installers share one model file instead of duplicating ~141MB.
+EXTRA_LOCAL_MODEL_PATHS: tuple[Path, ...] = (
+    Path.home() / ".whisper" / "ggml-base.en.bin",
+)
 REQUIRED_BINS = ("ffmpeg", "ffprobe", "yt-dlp")
 
 
@@ -46,10 +52,27 @@ def _read_env() -> dict[str, str]:
 
 
 def _resolve_local_model(env: dict[str, str]) -> Optional[Path]:
-    """Resolve the whisper.cpp model path: env override > default. Returns None if no file."""
+    """Resolve the whisper.cpp model path.
+
+    Search order:
+        1. $WHISPER_CPP_MODEL (env or .env file)
+        2. ~/.config/claude-watch/models/ggml-base.en.bin  (claude-watch default)
+        3. EXTRA_LOCAL_MODEL_PATHS  (shared paths used by sibling installers,
+           e.g. ~/.whisper/ggml-base.en.bin from creativity-maxxing's media
+           module)
+
+    Returns the first path that exists on disk, or None.
+    """
     raw = env.get("WHISPER_CPP_MODEL")
-    candidate = Path(raw).expanduser() if raw else DEFAULT_LOCAL_MODEL
-    return candidate if candidate.exists() else None
+    if raw:
+        candidate = Path(raw).expanduser()
+        return candidate if candidate.exists() else None
+    if DEFAULT_LOCAL_MODEL.exists():
+        return DEFAULT_LOCAL_MODEL
+    for p in EXTRA_LOCAL_MODEL_PATHS:
+        if p.exists():
+            return p
+    return None
 
 
 def status_for() -> dict:

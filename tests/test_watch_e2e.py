@@ -41,5 +41,5 @@ def test_watch_end_to_end_on_local_fixture(tmp_path):
         assert (lib / frame["path"]).exists()
 
     # Stdout should contain the structured manifest block
-    assert "=== claude-watch manifest ===" in proc.stdout
+    assert "=== watch manifest ===" in proc.stdout
     assert "library_dir:" in proc.stdout

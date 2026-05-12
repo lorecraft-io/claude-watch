@@ -1,4 +1,4 @@
-"""Cross-platform preflight + installer for claude-watch.
+"""Cross-platform preflight + installer for watch.
 
 Exit codes (read by SKILL.md):
     0  ready
@@ -18,15 +18,18 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-CONFIG_DIR = Path.home() / ".config" / "claude-watch"
+CONFIG_DIR = Path.home() / ".config" / "watch"
 ENV_PATH = CONFIG_DIR / ".env"
-LIBRARY_ROOT = Path.home() / "claude-watch" / "library"
+LIBRARY_ROOT = Path.home() / "watch" / "library"
 DEFAULT_LOCAL_MODEL = CONFIG_DIR / "models" / "ggml-base.en.bin"
-# Additional known-good model locations. creativity-maxxing's media module
-# installs the model at ~/.whisper/ggml-base.en.bin; honor that path too so
-# the two installers share one model file instead of duplicating ~141MB.
+# Additional known-good model locations.
+# - creativity-maxxing's media module installs the model at ~/.whisper/ggml-base.en.bin
+# - pre-rename installs (when this skill was named "claude-watch") used
+#   ~/.config/claude-watch/models/ggml-base.en.bin — honor that for backwards
+#   compatibility so users upgrading from the old name don't lose their ~141MB model.
 EXTRA_LOCAL_MODEL_PATHS: tuple[Path, ...] = (
     Path.home() / ".whisper" / "ggml-base.en.bin",
+    Path.home() / ".config" / "claude-watch" / "models" / "ggml-base.en.bin",
 )
 REQUIRED_BINS = ("ffmpeg", "ffprobe", "yt-dlp")
 
@@ -56,7 +59,7 @@ def _resolve_local_model(env: dict[str, str]) -> Optional[Path]:
 
     Search order:
         1. $WHISPER_CPP_MODEL (env or .env file)
-        2. ~/.config/claude-watch/models/ggml-base.en.bin  (claude-watch default)
+        2. ~/.config/watch/models/ggml-base.en.bin  (watch default)
         3. EXTRA_LOCAL_MODEL_PATHS  (shared paths used by sibling installers,
            e.g. ~/.whisper/ggml-base.en.bin from creativity-maxxing's media
            module)
@@ -118,9 +121,9 @@ def _scaffold_env() -> None:
     if ENV_PATH.exists():
         return
     ENV_PATH.write_text(
-        "# claude-watch credentials\n"
+        "# watch credentials\n"
         "# Preferred: local whisper.cpp (no key, no network). Install: brew install whisper-cpp\n"
-        "# Then set WHISPER_CPP_MODEL to a ggml model path (default: ~/.config/claude-watch/models/ggml-base.en.bin)\n"
+        "# Then set WHISPER_CPP_MODEL to a ggml model path (default: ~/.config/watch/models/ggml-base.en.bin)\n"
         "# WHISPER_CPP_MODEL=\n"
         "# Cloud fallbacks (only if you don't want local):\n"
         "# GROQ_API_KEY=\n"

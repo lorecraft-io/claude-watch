@@ -1,21 +1,21 @@
 ---
-name: claude-watch
-description: Watch a tutorial / lecture / talk video, OR sweep a whole YouTube channel or playlist, and produce structured study notes. Downloads with yt-dlp, detects scene changes with ffmpeg, pulls a timestamped transcript (captions, local whisper.cpp, or cloud whisper fallback), and writes section-by-section markdown notes with embedded screenshots to ~/claude-watch/library/<slug>/. Channel/playlist URLs produce one notes.md per video plus a top-level index.md rolling up the channel.
+name: watch
+description: Watch a tutorial / lecture / talk video, OR sweep a whole YouTube channel or playlist, and produce structured study notes. Downloads with yt-dlp, detects scene changes with ffmpeg, pulls a timestamped transcript (captions, local whisper.cpp, or cloud whisper fallback), and writes section-by-section markdown notes with embedded screenshots to ~/watch/library/<slug>/. Channel/playlist URLs produce one notes.md per video plus a top-level index.md rolling up the channel.
 argument-hint: "<video-or-channel-url-or-path> [topic-or-question]"
 allowed-tools: Bash, Read, Write, AskUserQuestion
-homepage: https://github.com/devinilabs/claude-watch
-repository: https://github.com/devinilabs/claude-watch
+homepage: https://github.com/lorecraft-io/claude-watch
+repository: https://github.com/lorecraft-io/claude-watch
 license: MIT
 user-invocable: true
 ---
 
-# /claude-watch — Claude turns a video into study notes
+# /watch — Claude turns a video into study notes
 
 You don't have a video input. This skill gives you one *and* turns each viewing into a saved notes artifact.
 
 ## Step 0 — Setup preflight (silent on success)
 
-Run on every `/claude-watch` invocation:
+Run on every `/watch` invocation:
 
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/scripts/setup.py" --check
@@ -27,12 +27,12 @@ Exit codes: `0` ready (silent — proceed), `2` missing binaries, `3` missing AP
 python3 "${CLAUDE_SKILL_DIR}/scripts/setup.py"
 ```
 
-On macOS this auto-`brew install`s ffmpeg + yt-dlp. On Linux/Windows it prints the right commands. It scaffolds `~/.config/claude-watch/.env` (mode 0600) with commented placeholders.
+On macOS this auto-`brew install`s ffmpeg + yt-dlp. On Linux/Windows it prints the right commands. It scaffolds `~/.config/watch/.env` (mode 0600) with commented placeholders.
 
 **Backends, in priority order:**
-1. **Local whisper.cpp** — preferred (free, offline, Metal-accelerated on Apple Silicon). Requires `whisper-cli` on PATH (`brew install whisper-cpp`) AND a ggml model file at `~/.config/claude-watch/models/ggml-base.en.bin` (or wherever `WHISPER_CPP_MODEL` env var points).
-2. **Groq** — needs `GROQ_API_KEY` in `~/.config/claude-watch/.env`.
-3. **OpenAI** — needs `OPENAI_API_KEY` in `~/.config/claude-watch/.env`.
+1. **Local whisper.cpp** — preferred (free, offline, Metal-accelerated on Apple Silicon). Requires `whisper-cli` on PATH (`brew install whisper-cpp`) AND a ggml model file at `~/.config/watch/models/ggml-base.en.bin` (or wherever `WHISPER_CPP_MODEL` env var points).
+2. **Groq** — needs `GROQ_API_KEY` in `~/.config/watch/.env`.
+3. **OpenAI** — needs `OPENAI_API_KEY` in `~/.config/watch/.env`.
 
 If no backend is configured, use `AskUserQuestion` to ask whether the user wants to install whisper-cpp locally (`brew install whisper-cpp` + download `ggml-base.en.bin`), set a Groq key, set an OpenAI key, or run with `--no-whisper` (frames-only when no native captions).
 
@@ -41,11 +41,11 @@ If no backend is configured, use `AskUserQuestion` to ask whether the user wants
 - User pastes a tutorial / lecture / talk URL and asks to study it
 - User points at a local screen recording or video and wants notes
 - User pastes a **YouTube channel URL** (`youtube.com/@handle`, `youtube.com/c/...`, `youtube.com/channel/...`) or **playlist URL** and asks to study the channel / find recurring patterns / scrape what a creator is doing
-- User types `/claude-watch <url-or-path> [topic]`
+- User types `/watch <url-or-path> [topic]`
 
 ## Channel / playlist mode
 
-If `source` is a multi-video URL (yt-dlp probe returns `_type: playlist` with >1 entries), `watch.py` runs the per-video pipeline on each and writes a top-level `index.md` to `~/claude-watch/library/channel-<slug>-<hash>/`. Defaults to the first 10 videos; override with `--limit N`. Force single-video mode (skip channel detection) with `--single`.
+If `source` is a multi-video URL (yt-dlp probe returns `_type: playlist` with >1 entries), `watch.py` runs the per-video pipeline on each and writes a top-level `index.md` to `~/watch/library/channel-<slug>-<hash>/`. Defaults to the first 10 videos; override with `--limit N`. Force single-video mode (skip channel detection) with `--single`.
 
 After channel runs, write a `synthesis.md` (in the channel dir, alongside `index.md`) that fills the `## Cross-channel synthesis` section in `index.md`: recurring hooks, thumbnail formulas, script structures, what's trending, and the 3 most cloneable moves. You don't need to write a notes.md per video synthesis (each video already got its own).
 
@@ -155,6 +155,6 @@ If the user asks a follow-up about a video you already watched in this session, 
 
 - Runs `yt-dlp`, `ffmpeg`, `ffprobe` locally
 - Sends extracted mono 16 kHz audio to Groq (preferred) or OpenAI Whisper API only when captions are missing
-- Reads/writes `~/.config/claude-watch/.env` (mode 0600) for keys
-- Persists artifacts to `~/claude-watch/library/<slug>/` — review the directory after first run if you're cautious
+- Reads/writes `~/.config/watch/.env` (mode 0600) for keys
+- Persists artifacts to `~/watch/library/<slug>/` — review the directory after first run if you're cautious
 - Does NOT log or transmit API keys, video files, or the original URL outside the audio-to-Whisper call

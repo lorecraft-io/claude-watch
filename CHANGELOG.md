@@ -1,6 +1,18 @@
 # Changelog
 
-All notable changes to `claude-watch` are documented here.
+All notable changes to this skill (originally `claude-watch`, renamed `watch` in this fork) are documented here.
+
+## [Unreleased] — lorecraft-io fork
+
+### Changed
+- **Renamed `claude-watch` → `watch`.** Slash command is now `/watch`. Skill installs at `~/.claude/skills/watch/`. Library lives at `~/watch/library/<slug>/`. Config at `~/.config/watch/.env`. The repo itself stays `claude-watch` on GitHub to preserve the fork lineage with `devinilabs/claude-watch`.
+
+### Added
+- **Local whisper.cpp backend.** `scripts/whisper.py::transcribe_local()` shells out to `whisper-cli -oj` and parses the JSON `transcription[].offsets` into the existing segment shape — same contract as the HTTP backends. `pick_backend()` prefers local when present (`whisper-cli` on PATH AND a ggml model file resolvable). Net effect: the skill runs key-free + offline on machines with `brew install whisper-cpp`.
+- **Channel / playlist mode.** `scripts/channel.py` + a refactor in `scripts/watch.py` so playlist URLs (including channel `@handle/videos` URLs) are detected via `yt-dlp --flat-playlist --dump-single-json` and processed as a batch (default `--limit 10`, `--single` to force per-video). Writes a `~/watch/library/channel-<slug>-<hash>/index.md` rolling up the batch with a Cross-channel synthesis stub.
+- **Shared whisper-model fallback.** `scripts/setup.py::_resolve_local_model()` walks a search list: `$WHISPER_CPP_MODEL` env var, then `~/.config/watch/models/ggml-base.en.bin` (the default), then `EXTRA_LOCAL_MODEL_PATHS` — currently `~/.whisper/ggml-base.en.bin` (creativity-maxxing media-module path) and `~/.config/claude-watch/models/ggml-base.en.bin` (legacy, pre-rename installs).
+- **`--whisper local` flag** alongside the existing `groq` / `openai` options.
+- **Test coverage:** 9 channel-mode unit tests (`tests/test_channel.py`) + 5 model-resolution tests + 1 local-whisper-ready-path test in `tests/test_setup.py`. Suite at 73+ assertions, all green.
 
 ## [0.1.0] — 2026-05-03
 

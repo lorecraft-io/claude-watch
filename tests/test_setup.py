@@ -73,7 +73,7 @@ def test_resolve_local_model_falls_through_extra_paths_when_default_missing(monk
 
     This is the sibling-installer integration case: creativity-maxxing's media
     module drops the model at ~/.whisper/ggml-base.en.bin, not at
-    ~/.config/claude-watch/models/ggml-base.en.bin.
+    ~/.config/watch/models/ggml-base.en.bin.
     """
     missing_default = tmp_path / "default-missing" / "model.bin"
     present_extra = tmp_path / "extra-present" / "model.bin"
@@ -86,7 +86,7 @@ def test_resolve_local_model_falls_through_extra_paths_when_default_missing(monk
 
 
 def test_resolve_local_model_default_wins_over_extra(monkeypatch, tmp_path):
-    """If BOTH default and extra exist, the claude-watch default wins."""
+    """If BOTH default and extra exist, the watch default wins."""
     present_default = tmp_path / "default" / "model.bin"
     present_extra = tmp_path / "extra" / "model.bin"
     present_default.parent.mkdir(parents=True)

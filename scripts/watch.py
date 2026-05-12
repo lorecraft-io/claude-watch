@@ -1,4 +1,4 @@
-"""claude-watch orchestrator — runs the full pipeline and prints a manifest block.
+"""watch orchestrator — runs the full pipeline and prints a manifest block.
 
 Single-video URLs and local files run the per-video pipeline. Channel and
 playlist URLs are detected via yt-dlp's flat-playlist probe and processed as
@@ -213,7 +213,7 @@ def _print_video_manifest(result: dict, args) -> None:
     focus_str = "full" if result.get("focus") is None else (
         f"{args.start or '0:00'}–{args.end or 'end'}"
     )
-    print("=== claude-watch manifest ===")
+    print("=== watch manifest ===")
     print(f"title: {result['title']!r}")
     print(f"source: {result['source']}")
     print(f"duration: {duration_str}")
@@ -245,7 +245,7 @@ def _run_channel(source: str, args, probe: dict) -> int:
     channel_dir = lib.LIBRARY_ROOT / channel_mod.channel_slug(probe, source)
     channel_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"=== claude-watch channel ===", flush=True)
+    print(f"=== watch channel ===", flush=True)
     print(f"channel: {channel_title!r}", flush=True)
     print(f"source: {source}", flush=True)
     print(f"videos_found: {len(probe.get('entries') or [])}", flush=True)
@@ -279,7 +279,7 @@ def _run_channel(source: str, args, probe: dict) -> int:
         watched_at=watched_at,
     )
 
-    print("=== claude-watch channel summary ===")
+    print("=== watch channel summary ===")
     print(f"channel_index: {index_path}")
     print(f"videos_ok: {sum(1 for r in results if r.get('status') == 'ok')}")
     print(f"videos_failed: {sum(1 for r in results if r.get('status') != 'ok')}")
@@ -300,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-gap", type=float, default=45.0, help="coverage floor seconds")
     p.add_argument("--whisper", choices=["local", "groq", "openai"], help="force Whisper backend")
     p.add_argument("--no-whisper", action="store_true", help="disable Whisper fallback")
-    p.add_argument("--out-dir", help="library root (default: ~/claude-watch/library)")
+    p.add_argument("--out-dir", help="library root (default: ~/watch/library)")
     p.add_argument("--limit", type=int, default=10,
                    help="max videos to process when source is a channel/playlist (default 10)")
     p.add_argument("--single", action="store_true",

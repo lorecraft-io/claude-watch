@@ -1,4 +1,4 @@
-"""Slug, cache, and manifest helpers for claude-watch's persistent library."""
+"""Slug, cache, and manifest helpers for watch's persistent library."""
 from __future__ import annotations
 
 import hashlib
@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-LIBRARY_ROOT = Path.home() / "claude-watch" / "library"
+LIBRARY_ROOT = Path.home() / "watch" / "library"
 
 _SLUG_BAD = re.compile(r"[^a-z0-9]+")
 

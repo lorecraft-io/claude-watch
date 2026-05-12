@@ -15,3 +15,6 @@ dist/
 # watch-runtime data should never be committed
 library/
 .env
+
+# Claude-flow runtime — never commit
+.claude-flow/

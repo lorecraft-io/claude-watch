@@ -40,7 +40,26 @@
 /watch <url> --resolution 1024            # for slides with tiny code text
 ```
 
-Flags: `--start/--end`, `--max-frames`, `--resolution`, `--scene-threshold`, `--max-gap`, `--whisper groq|openai`, `--no-whisper`, `--out-dir`.
+Flags: `--start/--end`, `--max-frames`, `--resolution`, `--scene-threshold`, `--max-gap`, `--whisper local|groq|openai`, `--no-whisper`, `--out-dir`, `--limit N` (channel mode), `--single` (force per-video).
+
+### Natural-language activation
+
+You don't have to remember the slash command. Drop a video URL into chat with any of these (and obvious variants) and the skill auto-triggers:
+
+- "watch this video / lecture / tutorial / talk" + URL
+- "study this video / take notes on this / give me notes on this"
+- "transcribe this video / reel / tiktok"
+- "summarize this video" / "summarize this with frames"
+- "break down this video / reel / lecture"
+- "analyze this video / channel / youtube"
+- "frame by frame" / "frame-aware notes" / "with screenshots"
+- "scrape this channel / creator / youtube"
+- "sweep this channel / playlist"
+- "what hooks does this creator use" / "hook analysis" / "script structure" / "cloneable moves"
+- "study this creator" / "research this creator" / "channel research"
+- Or just paste a URL and say "watch this" / "scrape this" / "take notes."
+
+The SKILL.md description ships an explicit trigger list so Claude Code's auto-router picks the right skill instead of guessing.
 
 ## Bring your own keys
 

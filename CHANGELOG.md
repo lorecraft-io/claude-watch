@@ -6,6 +6,7 @@ All notable changes to this skill (originally `claude-watch`, renamed `watch` in
 
 ### Changed
 - **Renamed `claude-watch` → `watch`.** Slash command is now `/watch`. Skill installs at `~/.claude/skills/watch/`. Library lives at `~/watch/library/<slug>/`. Config at `~/.config/watch/.env`. The repo itself stays `claude-watch` on GitHub to preserve the fork lineage with `devinilabs/claude-watch`.
+- **Hardened natural-language activation.** SKILL.md `description:` now ends with an explicit `Triggers on:` enumeration of phrases (mirrors the Higgsfield-skill pattern) so Claude Code's auto-router picks the skill on plain-English requests — `watch this video`, `study this lecture`, `transcribe this reel`, `summarize this with frames`, `break down this video`, `analyze this channel`, `frame by frame`, `scrape this creator`, `sweep this channel`, `hook analysis`, `script structure`, `cloneable moves`, etc. — not just the slash command. README ships a Natural-language activation section listing the trigger families.
 
 ### Added
 - **Local whisper.cpp backend.** `scripts/whisper.py::transcribe_local()` shells out to `whisper-cli -oj` and parses the JSON `transcription[].offsets` into the existing segment shape — same contract as the HTTP backends. `pick_backend()` prefers local when present (`whisper-cli` on PATH AND a ggml model file resolvable). Net effect: the skill runs key-free + offline on machines with `brew install whisper-cpp`.

@@ -1,4 +1,4 @@
-# watch
+# fidgetwatch
 
 **Turn any tutorial or lecture video into structured study notes.** Paste a URL, walk away, come back to a markdown file with embedded screenshots, timestamped transcript, and Claude's synthesis — saved to a persistent library.
 

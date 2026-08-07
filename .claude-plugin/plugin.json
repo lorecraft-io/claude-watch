@@ -1,21 +1,11 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "watch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turn any video into a section-by-section study-notes markdown file with embedded screenshots and a timestamped transcript.",
-  "homepage": "https://github.com/lorecraft-io/claude-watch",
+  "homepage": "https://github.com/fidgetcoding/fidget-watching",
   "license": "MIT",
   "keywords": ["video", "lecture", "tutorial", "notes", "transcript", "ffmpeg", "yt-dlp"],
-  "skills": [
-    {
-      "name": "watch",
-      "path": "."
-    }
-  ],
-  "commands": [
-    {
-      "name": "watch",
-      "path": "commands/watch.md"
-    }
-  ],
-  "hooks": "hooks/hooks.json"
+  "skills": "./",
+  "hooks": "./hooks/hooks.json"
 }
